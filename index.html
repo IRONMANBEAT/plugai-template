@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plug AI Generator - Interactive</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        /* --- FONTS & RESET --- */
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@1,900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+
+        body {
+            background-color: #111;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* --- THE PHONE SCREEN --- */
+        .app-screen {
+            width: 375px;
+            height: 667px; 
+            /* Gradient matches your plug2.png reference */
+            background: linear-gradient(180deg, #dcecfc 0%, #b5d0f3 100%);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; 
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        /* --- HEADER --- */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            margin-top: 5px;
+            z-index: 10;
+        }
+
+        /* ICON BUTTONS */
+        .icon-btn {
+            width: 44px;
+            height: 44px;
+            background: rgba(0, 0, 0, 0.15); 
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            backdrop-filter: blur(2px);
+        }
+        .icon-btn svg {
+            width: 24px;
+            height: 24px;
+            stroke: #FF5A5F;
+            stroke-width: 3.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            fill: none;
+        }
+
+        /* LOGO */
+        .logo-container { padding: 5px; }
+        .logo-text {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 900;
+            font-style: italic;
+            font-size: 34px;
+            color: #FF5A5F;
+            position: relative;
+            z-index: 2;
+            letter-spacing: -1px;
+        }
+        .logo-text::before {
+            content: attr(data-text);
+            position: absolute;
+            left: 0;
+            top: 0;
+            z-index: -1;
+            -webkit-text-stroke: 8px white; 
+            text-stroke: 8px white;
+            stroke-linejoin: round;
+        }
+
+        /* --- CONTENT AREA --- */
+        .content-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 15px;
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+
+        /* IMAGE UPLOAD AREA */
+        .image-container {
+            width: 335px;
+            height: 200px;
+            background-color: rgba(255, 255, 255, 0.5);
+            border: 2px dashed #8faecb;
+            border-radius: 18px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            position: relative;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        .image-container:hover { border-color: #fff; }
+
+        .placeholder-content { display: flex; flex-direction: column; align-items: center; color: #6b7c93; pointer-events: none; }
+        .placeholder-icon { font-size: 40px; margin-bottom: 10px; }
+        
+        .image-container img { width: 100%; height: auto; display: none; object-fit: contain; }
+        
+        .image-container.has-image {
+            width: auto;
+            height: auto;
+            max-width: 100%;
+            background-color: transparent;
+            border: none;
+        }
+        .image-container.has-image .placeholder-content { display: none; }
+        .image-container.has-image img { display: block; border-radius: 18px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+
+        .helper-label {
+            color: #8faecb;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 25px;
+            letter-spacing: 0.3px;
+        }
+
+        /* --- INTERACTIVE BUBBLE --- */
+        .msg-bubble {
+            align-self: flex-end; 
+            width: fit-content;
+            max-width: 80%;
+            min-width: 60px;
+            padding: 12px 16px;
+            font-size: 16px;
+            line-height: 1.4;
+            border-radius: 18px 0 18px 18px;
+            position: relative;
+            margin-right: 15px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            word-wrap: break-word;
+            cursor: text;
+            background-color: #007AFF; 
+            color: #fff;
+            outline: none;
+        }
+
+        .msg-bubble::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            right: -9px; 
+            width: 0;
+            height: 0;
+            border-bottom: 10px solid transparent; 
+            border-top: 0;
+            border-left: 10px solid #007AFF; 
+        }
+
+        .msg-bubble:empty::before {
+            content: "Type...";
+            color: rgba(255,255,255,0.7);
+        }
+
+        /* --- FLOATING BUTTONS --- */
+        .button-container {
+            position: fixed;
+            bottom: 30px;
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 30px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            transition: transform 0.2s;
+        }
+        .btn:hover { transform: scale(1.05); }
+
+        .save-btn { background: #fff; color: #000; }
+        .reset-btn { background: #ff3b30; color: #fff; } /* Standard Red Reset */
+
+        #hidden-file { display: none; }
+
+    </style>
+</head>
+<body>
+
+    <div class="app-screen" id="capture-target">
+        
+        <div class="app-header">
+            <div class="icon-btn">
+                <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </div>
+            
+            <div class="logo-container">
+                <span class="logo-text" data-text="Plug AI">Plug AI</span>
+            </div>
+
+            <div class="icon-btn">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </div>
+        </div>
+
+        <div class="content-area">
+            
+            <div class="image-container" id="img-container" onclick="document.getElementById('hidden-file').click()">
+                <div class="placeholder-content">
+                    <div class="placeholder-icon">📷</div>
+                    <div>Click to upload picture</div>
+                </div>
+                <img id="preview-img">
+                <input type="file" id="hidden-file" accept="image/*" onchange="loadFile(this)">
+            </div>
+
+            <div class="helper-label">tap to copy</div>
+
+            <div class="msg-bubble" contenteditable="true" spellcheck="false"></div>
+        
+        </div>
+    </div>
+
+    <div class="button-container">
+        <button class="btn reset-btn" onclick="resetApp()">🔄 Reset</button>
+        <button class="btn save-btn" onclick="downloadHD()">📸 Save Image</button>
+    </div>
+
+    <script>
+        // 1. Load Image
+        function loadFile(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.getElementById('preview-img');
+                    const container = document.getElementById('img-container');
+                    img.src = e.target.result;
+                    container.classList.add('has-image');
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // 2. Reset Function
+        function resetApp() {
+            // Reset Image
+            const img = document.getElementById('preview-img');
+            const container = document.getElementById('img-container');
+            const fileInput = document.getElementById('hidden-file');
+            
+            img.src = "";
+            container.classList.remove('has-image');
+            fileInput.value = ""; // Clear input so same file can be re-selected
+
+            // Reset Text
+            const bubble = document.querySelector('.msg-bubble');
+            bubble.innerText = "";
+        }
+
+        // 3. Save Function
+        function downloadHD() {
+            const element = document.getElementById('capture-target');
+            
+            setTimeout(() => {
+                html2canvas(element, {
+                    scale: 4, 
+                    useCORS: true, 
+                    backgroundColor: null,
+                    logging: false,
+                    height: element.scrollHeight, 
+                    windowHeight: element.scrollHeight,
+                    onclone: (clonedDoc) => {
+                        const clonedElement = clonedDoc.getElementById('capture-target');
+                        clonedElement.style.display = 'flex';
+                        clonedElement.querySelector('.msg-bubble').blur(); 
+                    }
+                }).then(canvas => {
+                    const filename = `plug-ai-${Date.now()}.png`;
+                    const link = document.createElement('a');
+                    link.download = filename;
+                    link.href = canvas.toDataURL("image/png", 1.0);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }).catch(err => {
+                    console.error(err);
+                    alert("Error saving image.");
+                });
+            }, 100);
+        }
+    </script>
+</body>
+</html>
