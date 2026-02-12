@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Plug AI Generator - V20 (Mobile Fix)</title>
+    <title>Plug AI Generator - V21 (Canvas Fix)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
-        /* --- FONTS & RESET --- */
+        /* --- FONTS --- */
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@1,900&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
         
@@ -21,14 +21,12 @@
             justify-content: center;
             min-height: 100vh;
             padding: 20px;
-            /* Prevent scrolling issues on mobile */
             overflow-x: hidden; 
         }
 
         /* --- THE PHONE SCREEN --- */
         .app-screen {
             width: 375px;
-            /* Fixed height for view */
             height: 667px; 
             background: linear-gradient(180deg, #c4dbfc 0%, #a7c7f8 100%);
             position: relative;
@@ -36,8 +34,6 @@
             flex-direction: column;
             overflow: visible; 
             box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-            /* Ensure font rendering is consistent */
-            -webkit-font-smoothing: antialiased;
         }
 
         /* --- HEADER --- */
@@ -75,32 +71,20 @@
             fill: none;
         }
 
-        /* --- LOGO CSS --- */
+        /* --- LOGO CANVAS CONTAINER --- */
         .logo-container {
             width: 260px; 
+            height: 80px;
             display: flex;
             justify-content: center;
             align-items: center;
-            margin-top: -4px; 
+            margin-top: -2px; 
         }
 
-        .logo-svg {
+        /* The canvas that holds the drawn logo */
+        #logo-canvas {
             width: 100%;
-            height: auto;
-            overflow: visible; 
-        }
-
-        .logo-svg text {
-            font-family: 'Montserrat', sans-serif;
-            font-weight: 900;
-            font-style: italic;
-            font-size: 90px;
-            fill: #FF5A5F;
-            stroke: white;
-            stroke-width: 20px;
-            stroke-linejoin: round;
-            stroke-linecap: round;
-            paint-order: stroke; 
+            height: 100%;
         }
 
         /* --- CONTENT AREA --- */
@@ -215,24 +199,21 @@
         .save-btn { background: #fff; color: #000; }
         .reset-btn { background: #ff3b30; color: #fff; } 
 
-        /* Hidden Font Loader */
-        #font-force-load {
+        #hidden-file { display: none; }
+
+        /* Font Loader helper */
+        #font-check {
             font-family: 'Montserrat', sans-serif;
             font-weight: 900;
             font-style: italic;
-            position: absolute;
-            top: -9999px;
-            left: -9999px;
-            visibility: hidden;
+            position: absolute; 
+            opacity: 0;
         }
-
-        #hidden-file { display: none; }
-
     </style>
 </head>
 <body>
 
-    <div id="font-force-load">Plug AI</div>
+    <div id="font-check">.</div>
 
     <div class="app-screen" id="capture-target">
         
@@ -242,11 +223,7 @@
             </div>
             
             <div class="logo-container">
-                <svg viewBox="0 0 600 150" class="logo-svg">
-                    <text x="300" y="85" dominant-baseline="middle" text-anchor="middle">
-                        Plug AI
-                    </text>
-                </svg>
+                <canvas id="logo-canvas"></canvas>
             </div>
 
             <div class="icon-btn">
@@ -276,6 +253,42 @@
     </div>
 
     <script>
+        // --- LOGO DRAWING LOGIC ---
+        function drawLogo() {
+            const canvas = document.getElementById('logo-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas resolution for HD sharpness
+            canvas.width = 520; // 2x the container size
+            canvas.height = 160;
+
+            // Wait for font to fully load
+            document.fonts.load('italic 900 100px "Montserrat"').then(() => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Text Settings
+                ctx.font = 'italic 900 110px "Montserrat", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // 1. Draw White Stroke (Background)
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 30; // Thick outline
+                ctx.lineJoin = 'round';
+                ctx.miterLimit = 2;
+                ctx.strokeText("Plug AI", canvas.width / 2, canvas.height / 2);
+
+                // 2. Draw Red Fill (Foreground)
+                ctx.fillStyle = '#FF5A5F';
+                ctx.fillText("Plug AI", canvas.width / 2, canvas.height / 2);
+            });
+        }
+
+        // Run drawing on load and resize
+        window.onload = drawLogo;
+        
+        // --- APP LOGIC ---
+
         function loadFile(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
@@ -306,47 +319,46 @@
             const bubble = element.querySelector('.msg-bubble');
 
             btns.style.display = 'none';
+            
+            // Redraw logo one last time to be sure
+            drawLogo();
 
-            // Wait for fonts to be ready before capturing (Critical for Mobile)
-            document.fonts.ready.then(function () {
-                setTimeout(() => {
-                    // Calculate Dynamic Height
-                    const containerRect = element.getBoundingClientRect();
-                    const bubbleRect = bubble.getBoundingClientRect();
-                    
-                    let calculatedHeight = (bubbleRect.bottom - containerRect.top) + 30;
-                    calculatedHeight = Math.max(calculatedHeight, 300);
+            setTimeout(() => {
+                // Calculate Dynamic Height
+                const containerRect = element.getBoundingClientRect();
+                const bubbleRect = bubble.getBoundingClientRect();
+                let calculatedHeight = (bubbleRect.bottom - containerRect.top) + 30;
+                calculatedHeight = Math.max(calculatedHeight, 300);
 
-                    html2canvas(element, {
-                        scale: 4, 
-                        useCORS: true, 
-                        backgroundColor: null,
-                        logging: false,
-                        height: calculatedHeight,
-                        windowHeight: calculatedHeight,
-                        y: 0,
-                        onclone: (clonedDoc) => {
-                            const clonedElement = clonedDoc.getElementById('capture-target');
-                            clonedElement.style.height = "auto"; 
-                            clonedElement.style.display = 'flex';
-                            clonedElement.querySelector('.msg-bubble').blur(); 
-                        }
-                    }).then(canvas => {
-                        const filename = `plug-ai-${Date.now()}.png`;
-                        const link = document.createElement('a');
-                        link.download = filename;
-                        link.href = canvas.toDataURL("image/png", 1.0);
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        btns.style.display = 'flex';
-                    }).catch(err => {
-                        console.error(err);
-                        alert("Error saving image.");
-                        btns.style.display = 'flex';
-                    });
-                }, 200); // Slight delay increased for mobile
-            });
+                html2canvas(element, {
+                    scale: 4, 
+                    useCORS: true, 
+                    backgroundColor: null,
+                    logging: false,
+                    height: calculatedHeight,
+                    windowHeight: calculatedHeight,
+                    y: 0,
+                    onclone: (clonedDoc) => {
+                        const clonedElement = clonedDoc.getElementById('capture-target');
+                        clonedElement.style.height = "auto"; 
+                        clonedElement.style.display = 'flex';
+                        clonedElement.querySelector('.msg-bubble').blur(); 
+                    }
+                }).then(canvas => {
+                    const filename = `plug-ai-${Date.now()}.png`;
+                    const link = document.createElement('a');
+                    link.download = filename;
+                    link.href = canvas.toDataURL("image/png", 1.0);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    btns.style.display = 'flex';
+                }).catch(err => {
+                    console.error(err);
+                    alert("Error saving image.");
+                    btns.style.display = 'flex';
+                });
+            }, 100);
         }
     </script>
 </body>
