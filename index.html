@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plug AI Generator - Interactive</title>
+    <title>Plug AI Generator - V19 (Dynamic Height)</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         /* --- FONTS & RESET --- */
@@ -26,13 +26,14 @@
         /* --- THE PHONE SCREEN --- */
         .app-screen {
             width: 375px;
+            /* We keep fixed height for view, but JS will ignore this during capture */
             height: 667px; 
-            /* Gradient matches your plug2.png reference */
-            background: linear-gradient(180deg, #dcecfc 0%, #b5d0f3 100%);
+            background: linear-gradient(180deg, #c4dbfc 0%, #a7c7f8 100%);
             position: relative;
             display: flex;
             flex-direction: column;
-            overflow: hidden; 
+            /* Changed from hidden to visible so JS can calculate true height */
+            overflow: visible; 
             box-shadow: 0 20px 60px rgba(0,0,0,0.5);
         }
 
@@ -42,6 +43,7 @@
             justify-content: space-between;
             align-items: center;
             padding: 15px 20px;
+            padding-bottom: 5px; 
             margin-top: 5px;
             z-index: 10;
         }
@@ -50,45 +52,52 @@
         .icon-btn {
             width: 44px;
             height: 44px;
-            background: rgba(0, 0, 0, 0.15); 
+            background: rgba(0, 0, 0, 0.25); 
             border-radius: 12px;
             display: flex;
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            backdrop-filter: blur(2px);
+            backdrop-filter: blur(4px);
+            transition: transform 0.1s;
+            flex-shrink: 0; 
         }
         .icon-btn svg {
             width: 24px;
             height: 24px;
-            stroke: #FF5A5F;
+            stroke: #FF5A5F; 
             stroke-width: 3.5;
             stroke-linecap: round;
             stroke-linejoin: round;
             fill: none;
         }
 
-        /* LOGO */
-        .logo-container { padding: 5px; }
-        .logo-text {
+        /* --- LOGO CSS --- */
+        .logo-container {
+            width: 280px; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: -4px; 
+        }
+
+        .logo-svg {
+            width: 100%;
+            height: auto;
+            overflow: visible; 
+        }
+
+        .logo-svg text {
             font-family: 'Montserrat', sans-serif;
             font-weight: 900;
             font-style: italic;
-            font-size: 34px;
-            color: #FF5A5F;
-            position: relative;
-            z-index: 2;
-            letter-spacing: -1px;
-        }
-        .logo-text::before {
-            content: attr(data-text);
-            position: absolute;
-            left: 0;
-            top: 0;
-            z-index: -1;
-            -webkit-text-stroke: 8px white; 
-            text-stroke: 8px white;
+            font-size: 90px;
+            fill: #FF5A5F;
+            stroke: white;
+            stroke-width: 20px;
             stroke-linejoin: round;
+            stroke-linecap: round;
+            paint-order: stroke; 
         }
 
         /* --- CONTENT AREA --- */
@@ -97,9 +106,11 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding-top: 15px;
+            padding-top: 5px; 
             padding-left: 20px;
             padding-right: 20px;
+            /* Ensure padding at bottom so bubble shadow isn't cut off */
+            padding-bottom: 30px; 
         }
 
         /* IMAGE UPLOAD AREA */
@@ -122,7 +133,6 @@
 
         .placeholder-content { display: flex; flex-direction: column; align-items: center; color: #6b7c93; pointer-events: none; }
         .placeholder-icon { font-size: 40px; margin-bottom: 10px; }
-        
         .image-container img { width: 100%; height: auto; display: none; object-fit: contain; }
         
         .image-container.has-image {
@@ -136,7 +146,7 @@
         .image-container.has-image img { display: block; border-radius: 18px; box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
 
         .helper-label {
-            color: #8faecb;
+            color: #5e7d9b;
             font-size: 14px;
             font-weight: 500;
             margin-bottom: 25px;
@@ -154,7 +164,8 @@
             line-height: 1.4;
             border-radius: 18px 0 18px 18px;
             position: relative;
-            margin-right: 15px;
+            /* Removed margin-right to align perfectly with screen edge */
+            /* margin-right: 15px; */
             box-shadow: 0 1px 2px rgba(0,0,0,0.1);
             word-wrap: break-word;
             cursor: text;
@@ -202,7 +213,7 @@
         .btn:hover { transform: scale(1.05); }
 
         .save-btn { background: #fff; color: #000; }
-        .reset-btn { background: #ff3b30; color: #fff; } /* Standard Red Reset */
+        .reset-btn { background: #ff3b30; color: #fff; } 
 
         #hidden-file { display: none; }
 
@@ -218,7 +229,11 @@
             </div>
             
             <div class="logo-container">
-                <span class="logo-text" data-text="Plug AI">Plug AI</span>
+                <svg viewBox="0 0 600 150" class="logo-svg">
+                    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle">
+                        Plug AI
+                    </text>
+                </svg>
             </div>
 
             <div class="icon-btn">
@@ -227,7 +242,6 @@
         </div>
 
         <div class="content-area">
-            
             <div class="image-container" id="img-container" onclick="document.getElementById('hidden-file').click()">
                 <div class="placeholder-content">
                     <div class="placeholder-icon">📷</div>
@@ -238,7 +252,6 @@
             </div>
 
             <div class="helper-label">tap to copy</div>
-
             <div class="msg-bubble" contenteditable="true" spellcheck="false"></div>
         
         </div>
@@ -250,7 +263,6 @@
     </div>
 
     <script>
-        // 1. Load Image
         function loadFile(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
@@ -264,36 +276,52 @@
             }
         }
 
-        // 2. Reset Function
         function resetApp() {
-            // Reset Image
             const img = document.getElementById('preview-img');
             const container = document.getElementById('img-container');
             const fileInput = document.getElementById('hidden-file');
-            
             img.src = "";
             container.classList.remove('has-image');
-            fileInput.value = ""; // Clear input so same file can be re-selected
-
-            // Reset Text
+            fileInput.value = ""; 
             const bubble = document.querySelector('.msg-bubble');
             bubble.innerText = "";
         }
 
-        // 3. Save Function
+        // --- MODIFIED DOWNLOAD FUNCTION FOR DYNAMIC HEIGHT ---
         function downloadHD() {
             const element = document.getElementById('capture-target');
-            
+            const btns = document.querySelector('.button-container');
+            const bubble = element.querySelector('.msg-bubble');
+
+            // 1. Hide buttons
+            btns.style.display = 'none';
+
             setTimeout(() => {
+                // 2. Calculate Dynamic Height
+                // Get positions relative to the viewport
+                const containerRect = element.getBoundingClientRect();
+                const bubbleRect = bubble.getBoundingClientRect();
+
+                // Calculate distance from top of container to bottom of bubble
+                // Add 30px padding for nice spacing below the bubble
+                let calculatedHeight = (bubbleRect.bottom - containerRect.top) + 30;
+                
+                // Ensure we don't capture less than the header area if bubble is empty
+                calculatedHeight = Math.max(calculatedHeight, 300); 
+
                 html2canvas(element, {
                     scale: 4, 
                     useCORS: true, 
                     backgroundColor: null,
                     logging: false,
-                    height: element.scrollHeight, 
-                    windowHeight: element.scrollHeight,
+                    // 3. Apply calculated height to crop the canvas
+                    height: calculatedHeight,
+                    windowHeight: calculatedHeight,
+                    y: 0, // Start capturing from the absolute top
                     onclone: (clonedDoc) => {
                         const clonedElement = clonedDoc.getElementById('capture-target');
+                        // Ensure cloned element can expand fully before cropping
+                        clonedElement.style.height = "auto"; 
                         clonedElement.style.display = 'flex';
                         clonedElement.querySelector('.msg-bubble').blur(); 
                     }
@@ -305,9 +333,13 @@
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
+                    
+                    // 4. Restore buttons
+                    btns.style.display = 'flex';
                 }).catch(err => {
                     console.error(err);
                     alert("Error saving image.");
+                    btns.style.display = 'flex';
                 });
             }, 100);
         }
